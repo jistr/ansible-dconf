@@ -9,20 +9,24 @@ See also
 Installation
 ------------
 
-    curl https://raw.github.com/jistr/ansible-dconf/master/dconf.py > ~/ansible_dir/library/dconf
+    curl https://raw.githubusercontent.com/Leryan/ansible-dconf/master/dconf.py > ~/ansible_dir/library/dconf
 
 Usage examples
 --------------
 
     - name: gnome-terminal default-show-menubar
-      dconf: user=jistr
-             key=/org/gnome/terminal/legacy/default-show-menubar
-             value=false
+      dconf:
+        user: 'jistr'
+        key: '/org/gnome/terminal/legacy/default-show-menubar'
+        value: 'false'
+
+The `user` parameter is optional, using the currently connected user. If set, it uses `su - <user>` to switch.
 
 Be careful with string values, which should be passed into DConf
 single-quoted. You'll need to quote the value twice in YAML:
 
     - name: shortcut help
-      dconf: user=jistr
-             key=/org/gnome/terminal/legacy/keybindings/help
-             value="'disabled'"
+      dconf:
+        user: 'jistr'
+        key: '/org/gnome/terminal/legacy/keybindings/help'
+        value: "'disabled'"

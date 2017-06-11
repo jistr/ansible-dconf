@@ -19,6 +19,9 @@ def _set_value(user, key, value):
         'kill $DBUS_SESSION_BUS_PID &> /dev/null'
     ])
 
+    if user is None:
+        return subprocess.check_output(['/bin/sh', '-c', command]).strip()
+
     return subprocess.check_output([
         'su', '-', user , '-c', command
     ]).strip()
@@ -33,6 +36,9 @@ def _get_value(user, key):
         'kill $DBUS_SESSION_BUS_PID &> /dev/null'
     ])
 
+    if user is None:
+        return subprocess.check_output(['/bin/sh', '-c', command]).strip()
+
     return subprocess.check_output([
         'su', '-', user , '-c', command
     ]).strip()
@@ -42,7 +48,7 @@ def main():
     module = AnsibleModule(
         argument_spec = {
             'state': { 'choices': ['present'], 'default': 'present' },
-            'user': { 'required': True },
+            'user': { 'default': None },
             'key': { 'required': True },
             'value': { 'required': True },
         },
