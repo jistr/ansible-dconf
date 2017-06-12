@@ -9,7 +9,7 @@ See also
 Installation
 ------------
 
-    curl https://raw.githubusercontent.com/Leryan/ansible-dconf/master/dconf.py > ~/ansible_dir/library/dconf
+    curl https://raw.githubusercontent.com/jistr/ansible-dconf/master/dconf.py > ~/ansible_dir/library/dconf
 
 Usage examples
 --------------
@@ -20,7 +20,7 @@ Usage examples
         key: '/org/gnome/terminal/legacy/default-show-menubar'
         value: 'false'
 
-The `user` parameter is optional, using the currently connected user. If set, it uses `su - <user>` to switch.
+The `user` parameter is optional, using the currently connected user if omitted. If set, it uses `su - <user>` to switch.
 
 Be careful with string values, which should be passed into DConf
 single-quoted. You'll need to quote the value twice in YAML:
