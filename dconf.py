@@ -5,6 +5,9 @@ import subprocess
 
 from ansible.module_utils.basic import *
 
+def _check_output_strip(command):
+    return subprocess.check_output(command).decode('utf-8').strip()
+
 def _escape_single_quotes(string):
     return re.sub("'", r"'\''", string)
 
@@ -19,11 +22,9 @@ def _set_value(user, key, value):
     ])
 
     if user is None:
-        return subprocess.check_output(['/bin/sh', '-c', command]).strip()
+        _check_output_strip(['/bin/sh', '-c', command])
 
-    return subprocess.check_output([
-        'su', '-', user , '-c', command
-    ]).strip()
+    return _check_output_strip(['su', '-', user , '-c', command])
 
 def _get_value(user, key):
 
@@ -36,11 +37,9 @@ def _get_value(user, key):
     ])
 
     if user is None:
-        return subprocess.check_output(['/bin/sh', '-c', command]).strip()
+        return _check_output_strip(['/bin/sh', '-c', command])
 
-    return subprocess.check_output([
-        'su', '-', user , '-c', command
-    ]).strip()
+    return _check_output_strip(['su', '-', user , '-c', command])
 
 def main():
 
