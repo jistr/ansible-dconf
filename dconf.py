@@ -29,15 +29,13 @@ def _get_dbus_bus_address(user):
             ['grep', '-z', '^DBUS_SESSION_BUS_ADDRESS',
              '/proc/{}/environ'.format(pid)]).strip('\0')
 
-def _set_value(user, key, value):
-
+def _run_cmd_with_dbus(user, cmd):
     dbus_addr = _get_dbus_bus_address(user)
     if not dbus_addr:
         command = ['export `/usr/bin/dbus-launch`', ';']
     else:
         command = ['export', dbus_addr, ';']
-    command.extend(['/usr/bin/dconf', 'write',
-                    key, "'%s'" % _escape_single_quotes(value)])
+    command.extend(cmd)
     if not dbus_addr:
         command.extend([';',
             'kill $DBUS_SESSION_BUS_PID &> /dev/null'
@@ -47,23 +45,17 @@ def _set_value(user, key, value):
         return _check_output_strip(['/bin/sh', '-c', " ".join(command)])
 
     return _check_output_strip(['su', '-', user , '-c', " ".join(command)])
+
+def _set_value(user, key, value):
+    return _run_cmd_with_dbus(
+        user,
+        ['/usr/bin/dconf', 'write',
+         key, "'%s'" % _escape_single_quotes(value)])
 
 def _get_value(user, key):
-    dbus_addr = _get_dbus_bus_address(user)
-    if not dbus_addr:
-        command = ['export `/usr/bin/dbus-launch`', ';']
-    else:
-        command = ['export', dbus_addr, ';']
-    command.extend(['/usr/bin/dconf', 'read', key])
-    if not dbus_addr:
-        command.extend([';',
-            'kill $DBUS_SESSION_BUS_PID &> /dev/null'
-        ])
-
-    if user is None:
-        return _check_output_strip(['/bin/sh', '-c', " ".join(command)])
-
-    return _check_output_strip(['su', '-', user , '-c', " ".join(command)])
+    return _run_cmd_with_dbus(
+        user,
+        ['/usr/bin/dconf', 'read', key])
 
 def main():
 
