@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from os import environ
 import re
 import subprocess
 
@@ -11,35 +12,58 @@ def _check_output_strip(command):
 def _escape_single_quotes(string):
     return re.sub("'", r"'\''", string)
 
+def _get_dbus_bus_address(user):
+    if user is None:
+        if environ.get('DBUS_SESSION_BUS_ADDRESS') is None:
+            return None
+
+        return "DBUS_SESSION_BUS_ADDRESS={}".format(environ['DBUS_SESSION_BUS_ADDRESS'])
+
+    try:
+        pid = _check_output_strip(['pgrep', '-u', user, 'gnome-session'])
+    except subprocess.CalledProcessError:
+       return None
+
+    if pid:
+        return _check_output_strip(
+            ['grep', '-z', '^DBUS_SESSION_BUS_ADDRESS',
+             '/proc/{}/environ'.format(pid)]).strip('\0')
+
 def _set_value(user, key, value):
 
-    command = " ".join([
-        'export `/usr/bin/dbus-launch`',
-        ';',
-        '/usr/bin/dconf write', key, "'%s'" % _escape_single_quotes(value),
-        ';',
-        'kill $DBUS_SESSION_BUS_PID &> /dev/null'
-    ])
+    dbus_addr = _get_dbus_bus_address(user)
+    if not dbus_addr:
+        command = ['export `/usr/bin/dbus-launch`', ';']
+    else:
+        command = ['export', dbus_addr, ';']
+    command.extend(['/usr/bin/dconf', 'write',
+                    key, "'%s'" % _escape_single_quotes(value)])
+    if not dbus_addr:
+        command.extend([';',
+            'kill $DBUS_SESSION_BUS_PID &> /dev/null'
+        ])
 
     if user is None:
-        _check_output_strip(['/bin/sh', '-c', command])
+        return _check_output_strip(['/bin/sh', '-c', " ".join(command)])
 
-    return _check_output_strip(['su', '-', user , '-c', command])
+    return _check_output_strip(['su', '-', user , '-c', " ".join(command)])
 
 def _get_value(user, key):
-
-    command = " ".join([
-        'export `/usr/bin/dbus-launch`',
-        ';',
-        '/usr/bin/dconf read', key,
-        ';',
-        'kill $DBUS_SESSION_BUS_PID &> /dev/null'
-    ])
+    dbus_addr = _get_dbus_bus_address(user)
+    if not dbus_addr:
+        command = ['export `/usr/bin/dbus-launch`', ';']
+    else:
+        command = ['export', dbus_addr, ';']
+    command.extend(['/usr/bin/dconf', 'read', key])
+    if not dbus_addr:
+        command.extend([';',
+            'kill $DBUS_SESSION_BUS_PID &> /dev/null'
+        ])
 
     if user is None:
-        return _check_output_strip(['/bin/sh', '-c', command])
+        return _check_output_strip(['/bin/sh', '-c', " ".join(command)])
 
-    return _check_output_strip(['su', '-', user , '-c', command])
+    return _check_output_strip(['su', '-', user , '-c', " ".join(command)])
 
 def main():
 
