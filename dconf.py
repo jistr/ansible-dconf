@@ -12,7 +12,7 @@ def _check_output_strip(command):
 def _escape_single_quotes(string):
     return re.sub("'", r"'\''", string)
 
-def _get_dbus_bus_address(user):
+def _get_dbus_bus_address(user, dm):
     if user is None:
         if environ.get('DBUS_SESSION_BUS_ADDRESS') is None:
             return None
@@ -20,7 +20,7 @@ def _get_dbus_bus_address(user):
         return "DBUS_SESSION_BUS_ADDRESS={}".format(environ['DBUS_SESSION_BUS_ADDRESS'])
 
     try:
-        pid = _check_output_strip(['pgrep', '-u', user, 'gnome-session'])
+        pid = _check_output_strip(['pgrep', '-f', '-u', user, "^" + dm])
     except subprocess.CalledProcessError:
        return None
 
@@ -29,8 +29,8 @@ def _get_dbus_bus_address(user):
             ['grep', '-z', '^DBUS_SESSION_BUS_ADDRESS',
              '/proc/{}/environ'.format(pid)]).strip('\0')
 
-def _run_cmd_with_dbus(user, cmd):
-    dbus_addr = _get_dbus_bus_address(user)
+def _run_cmd_with_dbus(user, cmd, dm):
+    dbus_addr = _get_dbus_bus_address(user, dm)
     if not dbus_addr:
         command = ['dbus-run-session', '--']
     else:
@@ -42,16 +42,18 @@ def _run_cmd_with_dbus(user, cmd):
 
     return _check_output_strip(['su', '-', user , '-c', " ".join(command)])
 
-def _set_value(user, key, value):
+def _set_value(user, key, value, dm):
     return _run_cmd_with_dbus(
         user,
         ['/usr/bin/dconf', 'write',
-         key, "'%s'" % _escape_single_quotes(value)])
+         key, "'%s'" % _escape_single_quotes(value)],
+        dm)
 
-def _get_value(user, key):
+def _get_value(user, key, dm):
     return _run_cmd_with_dbus(
         user,
-        ['/usr/bin/dconf', 'read', key])
+        ['/usr/bin/dconf', 'read', key],
+        dm)
 
 def main():
 
@@ -61,6 +63,7 @@ def main():
             'user': { 'default': None },
             'key': { 'required': True },
             'value': { 'required': True },
+            'dm': { 'default': 'gnome-session' },
         },
         supports_check_mode = True,
     )
@@ -70,12 +73,13 @@ def main():
     user = module.params['user']
     key = module.params['key']
     value = module.params['value']
+    dm = module.params['dm']
 
-    old_value = _get_value(user, key)
+    old_value = _get_value(user, key, dm)
     changed = old_value != value
 
     if changed and not module.check_mode:
-        _set_value(user, key, value)
+        _set_value(user, key, value, dm)
 
     module.exit_json(**{
         'changed': changed,
